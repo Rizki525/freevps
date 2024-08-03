@@ -5,6 +5,8 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      RDP_PORT: 3390 # Customizable RDP Port
 
     steps:
     - name: Install xrdp
@@ -14,9 +16,13 @@ jobs:
 
     - name: Configure xrdp
       run: |
-        sudo sed -i 's/port=3389/port=3390/g' /etc/xrdp/xrdp.ini
+        sudo sed -i "s/port=3389/port=${{ env.RDP_PORT }}/g" /etc/xrdp/xrdp.ini
         echo "startwm yes" | sudo tee -a /etc/xrdp/startwm.sh
         sudo service xrdp restart
+
+    - name: Allow RDP through Firewall
+      run: |
+        sudo ufw allow ${{ env.RDP_PORT }}/tcp
 
     - name: Download ngrok
       run: wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip
@@ -24,25 +30,31 @@ jobs:
       run: unzip ngrok-v3-stable-linux-amd64.zip
     - name: Give ngrok execute permission
       run: chmod +x ngrok
+
+    # Auth ngrok (Best Practice: Store in GitHub Secrets)
     - name: Auth ngrok
       run: ./ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
       env:
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
+    - name: Create Tunnel
+      run: ./ngrok tcp ${{ env.RDP_PORT }}
+
+    # Check if tunnel creation is successful
+    - name: Check Tunnel Status
+      run: |
+        sleep 5 # Wait for tunnel creation
+        TUNNEL_STATUS=$(curl -s -w "\n%{http_code}" http://localhost:4040/api/tunnels | jq -r '.tunnels[0] | select(.proto == "tcp") | .public_url')
+        TUNNEL_STATUS_CODE=${TUNNEL_STATUS: -3} # Extract HTTP status code
+        TUNNEL_URL=${TUNNEL_STATUS%???} # Remove HTTP status code from the end
+
+        if [[ "$TUNNEL_STATUS_CODE" -eq 200 ]]; then
+          echo "Connect using RDP client to: ${TUNNEL_URL}"
+        else
+          echo "Error creating tunnel. HTTP Status Code: ${TUNNEL_STATUS_CODE}"
+          exit 1 # Fail the workflow if tunnel creation fails
+        fi
 
     - name: Check xrdp status
-      run: |
-        sudo systemctl status xrdp
-
-    - name: Check firewall status
-      run: |
-        sudo ufw status
-
-    - name: Create Tunnel
-      run: ./ngrok tcp 3390
-
-    - name: Output Connection Information
-      run: |
-        PUBLIC_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
-        echo "Connect using RDP client to: $PUBLIC_URL"
-        
+      run: sudo systemctl status xrdp
+      

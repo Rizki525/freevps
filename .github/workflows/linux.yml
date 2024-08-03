@@ -18,6 +18,14 @@ jobs:
         echo "startwm yes" | sudo tee -a /etc/xrdp/startwm.sh
         sudo service xrdp restart
 
+    - name: Download ngrok
+      run: wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip
+    - name: Extract ngrok
+      run: unzip ngrok-v3-stable-linux-amd64.zip
+    - name: Give ngrok execute permission
+      run: chmod +x ngrok
+
+
     - name: Check xrdp status
       run: |
         sudo systemctl status xrdp

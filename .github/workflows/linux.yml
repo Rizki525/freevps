@@ -14,7 +14,7 @@ jobs:
 
     - name: Set Password for rizki
       run: |
-        echo "rizki:rizki" | sudo chpasswd
+       sudo echo "rizki:rizki" | sudo chpasswd
 
     - name: Add rizki to sudo group
       run: |

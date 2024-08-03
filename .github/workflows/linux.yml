@@ -12,10 +12,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y xrdp 
 
-    - name: Set Password for rizki
-      run: |
-        echo "rizki:rizki" | sudo chpasswd
-      
     - name: Configure xrdp
       run: |
         sudo sed -i 's/port=3389/port=3390/g' /etc/xrdp/xrdp.ini

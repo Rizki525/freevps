@@ -17,6 +17,7 @@ jobs:
     - name: Configure xrdp
       run: |
         sudo sed -i "s/port=3389/port=${{ env.RDP_PORT }}/g" /etc/xrdp/xrdp.ini
+        sudo cat /etc/xrdp/xrdp.ini
         echo "startwm yes" | sudo tee -a /etc/xrdp/startwm.sh
         sudo service xrdp restart
 

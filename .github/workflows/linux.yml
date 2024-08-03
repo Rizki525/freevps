@@ -12,21 +12,27 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y xrdp 
 
+    - name: Set Password for rizki
+      run: |
+        echo "rizki:rizki" | sudo chpasswd
+
+    - name: Add rizki to sudo group
+      run: |
+        sudo usermod -aG sudo rizki
+
     - name: Configure xrdp
       run: |
         sudo sed -i 's/port=3389/port=3390/g' /etc/xrdp/xrdp.ini
         echo "startwm yes" | sudo tee -a /etc/xrdp/startwm.sh
         sudo service xrdp restart
-    
-    - name: Download ngrok
-      run: wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip
-    - name: Extract ngrok
-      run: unzip ngrok-v3-stable-linux-amd64.zip
 
-    - name: Auth ngrok
-      run: ./ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-      env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+    - name: Check xrdp status
+      run: |
+        sudo systemctl status xrdp
+
+    - name: Check firewall status
+      run: |
+        sudo ufw status
 
     - name: Create Tunnel
       run: ./ngrok tcp 3390
@@ -35,3 +41,4 @@ jobs:
       run: |
         PUBLIC_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
         echo "Connect using RDP client to: $PUBLIC_URL"
+        
